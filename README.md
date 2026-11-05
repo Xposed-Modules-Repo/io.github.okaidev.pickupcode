@@ -1,62 +1,52 @@
 # 取件码助手 (PickupCodeGrabber)
 
-一个 **LSPosed 模块**：自动捕获快递取件短信 → 提取取件码 → 写入「待办」
-（一码一条、新码堆栈置顶）→ 弹出通知（点击复制 / 一键标记已取件）。
+一个 **LSPosed 模块**：从短信和 App 通知里认出取件码，存进本地库，
+首页顶部就是「待取件」，桌面小组件常驻；需要时再同步进系统待办。
 
-适用于 **小米 / 红米（MIUI·HyperOS）与 一加 / OPPO（ColorOS 16）+ Root (Magisk) + LSPosed** 环境。
-小米写小米笔记待办（默认），ColorOS 16 写日历「待办」（v2.7.0 起自动识别，亦可手动切换写入目标）。
+支持 **小米 / 红米（MIUI · HyperOS）** 与 **一加 / OPPO（ColorOS 16）**，
+需要 root（Magisk / KernelSU）+ LSPosed。
 
 ## ✨ 特性
 
-- **100% 覆盖短信来源**：Hook 短信库写入必经点（SmsProvider），普通短信与小米网络短信全覆盖
-- **一键部署 sqlite3**：APK 内置经实机验证的 sqlite3（arm64），体检发现缺失时点一下自动部署，告别 adb/Termux 手工操作
-- **部署体检 6 项**：LSPosed 注入 / root / 作用域自动比对 / 通知权限 / sqlite3 / 笔记库，逐项 ✅❌ + 修复指引
-- **🔍 排查问题向导**：注入 → root 授权 → 作用域 → 通知 → sqlite3（自动修复）→ 笔记库，分层定位、能自动修的自动修
-- **检查更新**（v2.5.1）：应用内自动检测新版本（默认每 3 天最多 1 次，唯一联网行为，
-  仅访问 GitHub Releases API），也可右上角「⋮」菜单手动检查；零短信权限承诺不变
-- **智能提取**：多码簇、多种真实短信格式、来源识别（菜鸟/丰巢/京东/顺丰/中通/圆通/韵达/申通/邮政）
-- **去重**：按「取件码 + 地点」指纹去重
-- **通知交互**：点击复制取件码 + 打开笔记待办；每条码带「已取件」按钮
-- **三种模板**（v2.6.0 重构）：极简 / 完整为只读效果预览；自定义占位符（`{code}` `{source}` `{place}` `{time}`），
-  编辑 + 保存 / 恢复默认，保存带校验
-- **界面大修**（v2.6.0）：体检全绿自动收起一行「✅ 一切正常」（点开看详情，有问题自动展开）；
-  模板切换与体检解耦；QQ 群 901543676 置顶入口（群号明文 + 一键复制，进群备注「取件码助手」）
-- **黑名单关键词**：过滤 12306 / 验证码 / 银行 / 广告等误报
-- **一键导出诊断报告**：自动收集日志与配置、脱敏后分享，出问题发一个文件即可
-- **隐私友好**：零短信权限（不申请 READ_SMS/RECEIVE_SMS，Hook 层直接取数），全程本地处理，
-  不收集任何数据；唯一联网行为是「检查更新」（默认每 3 天最多 1 次访问 GitHub，v2.5.1 起）
+- **两个来源**：短信 Hook（不申请短信权限）+ App 通知提取（菜鸟、菜鸟裹裹、京东、淘宝、拼多多、顺丰、丰巢、抖音等）
+- **本地库是事实源**：带状态、地点、时间，能搜索、筛选、导出；超过一天没取的标「滞留 N 天」，只提醒不删
+- **写入目标两处，默认都开**：
+  - 系统待办：小米笔记待办 / ColorOS 日历待办（可跟账号云同步，同账号的其他设备也能收到）
+  - 软件内部记录：首页「待取件」和桌面小组件读的就是它
+- **桌面小组件**：每行固定高度、一行一条；「显示取件码」可关，关掉只显示件数
+- **识别规则 v9**：覆盖主流驿站写法；电商那种「提醒你有件但不给码」的推送不会被误判
+- **自定义规则**：自建驿站 / 学校自提柜可以按号码或正则单独写一条
+- **一键链路测试**：不消耗真实短信，验证「解析 → 写入 → 去重 → 通知」整条链路
+- **隐私**：全程本地处理，不收集任何数据；唯一联网行为是检查更新（3 天一次）
 
 ## 🔧 环境要求
 
 | 项目 | 要求 |
 |---|---|
-| 设备 | 小米 / 红米（MIUI / HyperOS）或 一加 / OPPO（ColorOS 16，v2.7.0 起） |
-| 系统 | Android 12+ |
-| Root | Magisk |
-| 框架 | LSPosed |
-| 工具 | sqlite3（App 内可一键部署，无需手工准备） |
-| 实测 | Redmi K90 Pro Max / HyperOS 4.0 / Android 17 ✅ 一加 9 Pro / ColorOS 16 ✅ |
+| 系统 | HyperOS / MIUI，或 ColorOS 16；Android 9+ |
+| Root | Magisk 或 KernelSU |
+| 框架 | LSPosed 或兼容实现 |
+| 作用域 | `android`、`com.android.phone`、`com.android.mms`、`com.android.providers.telephony`；小米设备另加 `com.miui.notes` |
+
+⚠️ 「Android 系统」在作用域列表**最底部、不带推荐角标**，必须勾选；
+不是名字很像的「系统框架」（`system`）。
 
 ## 📲 安装
 
-1. 在 Releases 下载 APK 安装（或在 LSPosed 管理器内直接安装/更新本模块）；
-2. LSPosed 管理器 → 模块 → 取件码助手 → 启用，作用域勾选：
-   **小米**：`android`、`com.android.phone`、`com.android.mms`、`com.android.providers.telephony`、`com.miui.notes`
-   **ColorOS 16**：`android`、`com.android.phone`、`com.android.mms`、`com.android.providers.telephony`、`com.coloros.calendar`（写日历待办）
-   ⚠️ **注意：「Android 系统」在列表底部、不带"推荐应用"角标，也必须勾选！
-   不是字面很像的「系统框架」（system），勾 system 无效！**
-3. 重启手机；
-4. 打开 App → 「🩺 部署体检」全绿 → 「🧪 一键测试」验证；
-   遇到问题点「🔍 排查问题」，按向导逐层定位（能自动修的会自动修）。
+1. 下载 APK 安装；
+2. LSPosed 启用模块，按上表勾作用域；
+3. **重启手机**；
+4. 打开 App → 点开首页状态卡 → 点「点击体检」，全绿即完成。
 
-## 📖 完整文档
+## 📖 文档与反馈
 
-- 使用说明 / FAQ / 风险说明：[GitHub 源码仓库 README](https://github.com/O-kai/Xiaomi-HyperOs-pickup-code-grabber#readme)
+- 完整说明：[GitHub README](https://github.com/O-kai/Xiaomi-HyperOs-pickup-code-grabber#readme)
 - 更新日志：[CHANGELOG](https://github.com/O-kai/Xiaomi-HyperOs-pickup-code-grabber/blob/main/CHANGELOG.md)
-- 开发历程：[docs/15-journey.md](https://github.com/O-kai/Xiaomi-HyperOs-pickup-code-grabber/blob/main/docs/15-journey.md)
+- 反馈：QQ 群 901543676（备注「取件码助手」）｜ [酷安](https://coolapk.com/u/1222904) ｜ [Issues](https://github.com/O-kai/Xiaomi-HyperOs-pickup-code-grabber/issues)
 
 ## ⚠️ 声明
 
-- 本模块直写小米笔记数据库，不承诺云同步；只增行 / 定点标记，不删改用户已有数据；
-- 仅实测部分设备（见上），其他版本兼容性欢迎反馈；
-- 与小米公司无任何关联，非官方作品；MIT 许可，使用风险自担。
+- 实测：Redmi K90 Pro Max / HyperOS 4.0 / Android 17；ColorOS 16 的部分适配路径无实机验证；
+- 直写系统待办库：只增行 / 定点标记，不删改已有数据。跨设备靠系统账号同步，
+  同步由系统负责（没登录账号或关掉同步就不会传），模块不介入这个过程；
+- 与小米 / OPPO 无关联，MIT 许可，使用风险自担。
